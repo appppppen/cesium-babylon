@@ -5,7 +5,7 @@ import {
 import {
     ArcGisMapServerImageryProvider, Cartesian3, ShadowMode, UrlTemplateImageryProvider,
     Viewer, WebMapTileServiceImageryProvider, Math as SMath, GeographicTilingScheme, HeadingPitchRoll,
-    Transforms, Primitive, GeometryInstance, PolygonHierarchy, PolygonGeometry, EllipsoidSurfaceAppearance, Material
+    Transforms, Primitive, GeometryInstance, PolygonHierarchy, PolygonGeometry, EllipsoidSurfaceAppearance, Material, defined, ScreenSpaceEventHandler, ScreenSpaceEventType, SceneMode
 } from 'cesium';
 
 
@@ -15,7 +15,7 @@ export class CesiumBabylon {
     ThreeContainer = document.getElementById('ThreeContainer') as HTMLCanvasElement;
 
 
-    viewer: any;
+    viewer: Viewer;
     center = new Cartesian3();
     base_point: any;
     base_point_up: any;
@@ -129,7 +129,7 @@ export class CesiumBabylon {
     }
 
     moveBabylonCamera() {
-        const fov = SMath.toDegrees(this.viewer.camera.frustum.fovy);
+        const fov = SMath.toDegrees((this.viewer.camera.frustum as any).fovy);
         this.camera.fov = (fov / 180) * Math.PI;
 
         const civm = this.viewer.camera.inverseViewMatrix;
@@ -176,7 +176,11 @@ export class CesiumBabylon {
         const hpr = new HeadingPitchRoll(heading, pitch, roll);
         const orientation = Transforms.headingPitchRollQuaternion(position, hpr);
 
-        // const entity = this.viewer.entities.add({ position, orientation, model: { uri: 'https://parse.model.pm.bjocd.com/BIMComposer/model/building/scene.gltf', scale: 1, } });
+        const entity = this.viewer.entities.add({
+            id: 'obj_id_110', position, model: {
+                uri: 'https://parse.model.pm.bjocd.com/BIMComposer/model/building/scene.gltf', scale: 1,
+            }
+        });
 
         const position1 = Cartesian3.fromDegrees(this.minWGS84[0], this.maxWGS84[1], 0);
         // this.viewer.entities.add({
@@ -188,7 +192,7 @@ export class CesiumBabylon {
         //         // minimumPixelSize: 128,
         //         scale: 1000,
         //         // maximumScale: 20000
-        //     }
+        //     },
         // });
 
         const waterPrimitive = new Primitive({
@@ -255,6 +259,26 @@ export class CesiumBabylon {
         });
         this.viewer.scene.primitives.add(waterPrimitive);
         // this.viewer.scene.primitives.add(entity);
+
+
+
+        var handler = new ScreenSpaceEventHandler(this.viewer.scene.canvas);
+        handler.setInputAction((movement) => {
+            var pick = this.viewer.scene.pick(movement.position);
+            if (defined(pick) && (pick.id.id === 'obj_id_110')) {
+                console.log("left click");
+            }
+        }, ScreenSpaceEventType.LEFT_CLICK);
+
+        // 鼠标移入labelEntity提示框
+        handler.setInputAction((movement) => {
+            if (this.viewer.scene.mode !== SceneMode.MORPHING) {
+                var pickedObject = this.viewer.scene.pick(movement.endPosition);
+                if (defined(pickedObject) && (pickedObject.id.id === 'obj_id_110')) {
+                    console.log("mouse move");
+                }
+            }
+        }, ScreenSpaceEventType.MOUSE_MOVE);
     }
 
     cart2vec(cart: any) {
